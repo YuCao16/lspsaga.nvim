@@ -378,16 +378,18 @@ function finder:render_finder_result()
   opt.row = _position.row
   opt.col = _position.col
 
-  local side_char = window.border_chars()['top'][config.ui.border]
+  local r = window.border_chars()['right'][config.ui.border]
+  local rtop = window.border_chars()['righttop'][config.ui.border]
+  local rbottom = window.border_chars()['rightbottom'][config.ui.border]
   local content_opts = {
     contents = self.contents,
     filetype = 'lspsagafinder',
     bufhidden = 'wipe',
     enter = true,
     border_side = {
-      ['right'] = ' ',
-      ['righttop'] = side_char,
-      ['rightbottom'] = side_char,
+      ['right'] = r,
+      ['righttop'] = rtop,
+      ['rightbottom'] = rbottom,
     },
     highlight = {
       border = 'finderBorder',
@@ -634,21 +636,21 @@ function finder:auto_open_preview()
   }
 
   local winconfig = api.nvim_win_get_config(self.winid)
-  opts.col = winconfig.col[false] + winconfig.width + 2
+  opts.col = winconfig.col[false] + winconfig.width + 3
   opts.row = winconfig.row[false]
   opts.height = winconfig.height
   local max_width = api.nvim_win_get_width(self.main_win) - opts.col - 4
   local textwidth = vim.bo[self.main_buf].textwidth == 0 and 80 or vim.bo[self.main_buf].textwidth
   opts.width = max_width > textwidth and textwidth or max_width
 
-  local rtop = window.combine_char()['righttop'][config.ui.border]
-  local rbottom = window.combine_char()['rightbottom'][config.ui.border]
+  local ltop = window.border_chars()['lefttop'][config.ui.border]
+  local lbottom = window.border_chars()['leftbottom'][config.ui.border]
   local content_opts = {
     contents = data.content or {},
     bufnr = data.bufnr or nil,
     border_side = {
-      ['lefttop'] = rtop,
-      ['leftbottom'] = rbottom,
+      ['lefttop'] = ltop,
+      ['leftbottom'] = lbottom,
     },
     highlight = {
       border = 'finderPreviewBorder',

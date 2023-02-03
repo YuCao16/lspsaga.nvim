@@ -61,7 +61,6 @@ function act:action_callback()
     }
   end
 
-  -- vim.notify("coda action" .. tostring(opt.row))
   self.action_bufnr, self.action_winid = window.create_win_with_border(content_opts, opt)
   vim.wo[self.action_winid].conceallevel = 2
   vim.wo[self.action_winid].concealcursor = 'niv'
@@ -390,7 +389,6 @@ function act:action_preview(main_winid, main_buf)
   }
 
   local preview_buf
-  -- vim.notify("preview" .. tostring(opt.row))
   preview_buf, self.preview_winid = window.create_win_with_border(content_opts, opt)
   vim.bo[preview_buf].syntax = 'on'
   return self.preview_winid
