@@ -61,6 +61,7 @@ function act:action_callback()
     }
   end
 
+  -- vim.notify("coda action" .. tostring(opt.row))
   self.action_bufnr, self.action_winid = window.create_win_with_border(content_opts, opt)
   vim.wo[self.action_winid].conceallevel = 2
   vim.wo[self.action_winid].concealcursor = 'niv'
@@ -344,14 +345,14 @@ function act:action_preview(main_winid, main_buf)
   local opt = {}
   opt.relative = 'editor'
   local max_height = math.floor(vim.o.lines * 0.4)
-  opt.height = #tbl > max_height and max_height or #tbl
+  opt.height = #tbl > max_height and max_height or #tbl -- line of content of preview
 
   if win_conf.anchor:find('^N') then
     if win_conf.row[false] - opt.height > 0 then
-      opt.row = win_conf.row[false]
+      opt.row = win_conf.row[false] + 2
       opt.anchor = win_conf.anchor:gsub('N', 'S')
     else
-      opt.row = win_conf.row[false] + win_conf.height + 2
+      opt.row = win_conf.row[false] + win_conf.height + 3
       if #vim.wo[fn.bufwinid(main_buf)].winbar > 0 then
         opt.row = opt.row + 1
       end
@@ -359,10 +360,10 @@ function act:action_preview(main_winid, main_buf)
     end
   else
     if win_conf.row[false] - win_conf.height - opt.height - 4 > 0 then
-      opt.row = win_conf.row[false] - win_conf.height - 4
+      opt.row = win_conf.row[false] - win_conf.height
       opt.anchor = win_conf.anchor
     else
-      opt.row = win_conf.row[false]
+      opt.row = win_conf.row[false] + 2
       opt.anchor = win_conf.anchor:gsub('S', 'N')
     end
   end
@@ -389,6 +390,7 @@ function act:action_preview(main_winid, main_buf)
   }
 
   local preview_buf
+  -- vim.notify("preview" .. tostring(opt.row))
   preview_buf, self.preview_winid = window.create_win_with_border(content_opts, opt)
   vim.bo[preview_buf].syntax = 'on'
   return self.preview_winid
