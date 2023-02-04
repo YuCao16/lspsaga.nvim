@@ -755,14 +755,14 @@ function finder:open_preview()
   end
 
   vim.keymap.set('n', config.finder.keys.close_in_preview, function()
-    if self.winid and api.nvim_win_is_valid(self.winid) then
-      api.nvim_win_close(self.winid, true)
-    end
+    -- if self.winid and api.nvim_win_is_valid(self.winid) then
+    --   api.nvim_win_close(self.winid, true)
+    -- end
     if self.preview_winid and api.nvim_win_is_valid(self.preview_winid) then
       api.nvim_win_close(self.preview_winid, true)
     end
-    self:clean_data()
-    self:clean_ctx()
+    -- self:clean_data()
+    -- self:clean_ctx()
   end, { buffer = data.bufnr, nowait = true, silent = true })
 
   api.nvim_create_autocmd('WinClosed', {
