@@ -689,7 +689,14 @@ function finder:open_preview()
   end
 
   if data.content then
-    api.nvim_buf_set_lines(self.preview_bufnr, 0, -1, false, data.content)
+    if not data.bufnr then
+       data.bufnr = self.preview_bufnr
+     end
+     api.nvim_win_set_buf(self.preview_winid, data.bufnr)
+     api.nvim_set_option_value('bufhidden', '', { buf = self.preview_bufnr })
+     vim.bo[self.preview_bufnr].modifiable = true
+     api.nvim_buf_set_lines(self.preview_bufnr, 0, -1, false, data.content)
+     vim.bo[self.preview_bufnr].modifiable = false
     return
   end
 
