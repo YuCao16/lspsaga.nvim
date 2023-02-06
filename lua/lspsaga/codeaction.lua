@@ -4,6 +4,7 @@ local window = require('lspsaga.window')
 local libs = require('lspsaga.libs')
 local act = {}
 local ctx = {}
+local main_winnr = 0
 
 act.__index = act
 function act.__newindex(t, k, v)
@@ -203,6 +204,7 @@ function act:code_action(options)
   options = options or {}
 
   self:send_code_action_request(api.nvim_get_current_buf(), options, function()
+    main_winnr = api.nvim_get_current_win()
     self:action_callback()
   end)
 end
@@ -292,11 +294,13 @@ function act:get_action_diff(num, main_buf)
   local all_changes = {}
   if action.edit.documentChanges then
     for _, item in pairs(action.edit.documentChanges) do
-      if not all_changes[item.textDocument.uri] then
-        all_changes[item.textDocument.uri] = {}
-      end
-      for _, edit in pairs(item.edits) do
-        table.insert(all_changes[item.textDocument.uri], edit)
+      if item.textDocument then
+        if not all_changes[item.textDocument.uri] then
+          all_changes[item.textDocument.uri] = {}
+        end
+        for _, edit in pairs(item.edits) do
+          table.insert(all_changes[item.textDocument.uri], edit)
+        end
       end
     end
   elseif action.edit.changes then
@@ -366,7 +370,7 @@ function act:action_preview(main_winid, main_buf)
       opt.anchor = win_conf.anchor:gsub('S', 'N')
     end
   end
-  opt.col = win_conf.col[false]
+  opt.col = win_conf.col[false] + api.nvim_win_get_position(main_winnr)[2]
 
   local max_width = math.floor(vim.o.columns * 0.6)
   local max_len = window.get_max_content_length(tbl)
