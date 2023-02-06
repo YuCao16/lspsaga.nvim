@@ -705,7 +705,6 @@ function finder:open_preview()
     local path = vim.split(data.link, libs.path_sep, { trimempty = true })
     local icon = get_file_icon(self.main_buf)
     if fn.has('nvim-0.9') ~= 0 then
-        vim.notify("0.9")
       api.nvim_win_set_config(self.preview_winid, {
         border = config.ui.border,
         title = {
