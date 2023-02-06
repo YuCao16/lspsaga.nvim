@@ -331,15 +331,18 @@ function ch:render_win()
   end
 
   local side_char = window.border_chars()['top'][config.ui.border]
+  local r = window.border_chars()['right'][config.ui.border]
+  local rtop = window.border_chars()['righttop'][config.ui.border]
+  local rbottom = window.border_chars()['rightbottom'][config.ui.border]
   local content_opt = {
     contents = content,
     filetype = 'lspsagacallhierarchy',
     buftype = 'nofile',
     enter = true,
     border_side = {
-      ['right'] = ' ',
-      ['righttop'] = side_char,
-      ['rightbottom'] = side_char,
+      ['right'] = r,
+      ['righttop'] = rtop,
+      ['rightbottom'] = rbottom,
     },
     highlight = {
       normal = 'CallHierarchyNormal',
@@ -361,7 +364,7 @@ function ch:render_win()
     row = fn.winline() + 1,
     col = 10,
     height = math.floor(vim.o.lines * 0.4),
-    width = math.floor(vim.o.columns * 0.3),
+    width = math.floor(vim.o.columns * 0.15),
     no_size_override = true,
   }
 
@@ -374,7 +377,6 @@ function ch:render_win()
     api.nvim_set_hl(0, 'ArrowIcon', { link = 'CallHierarchyBorder' })
   end
 
-  opt.width = opt.width - 10
   self.bufnr, self.winid = window.create_win_with_border(content_opt, opt)
   api.nvim_win_set_cursor(self.winid, { 2, 9 })
   api.nvim_create_autocmd('CursorMoved', {
@@ -464,6 +466,7 @@ end
 
 local function create_preview_window(winid)
   local winconfig = api.nvim_win_get_config(winid)
+  local max_width = 80
   local opt = {
     relative = winconfig.relative,
     win = winconfig.win,
@@ -472,7 +475,7 @@ local function create_preview_window(winid)
     col = winconfig.col[false] + winconfig.width + 2,
     no_size_override = true,
   }
-  opt.width = vim.o.columns - opt.col - 6
+  opt.width = (vim.o.columns - opt.col - 6) < max_width and (vim.o.columns - opt.col - 6) or max_width
 
   local rtop = window.combine_char()['righttop'][config.ui.border]
   local rbottom = window.combine_char()['rightbottom'][config.ui.border]
