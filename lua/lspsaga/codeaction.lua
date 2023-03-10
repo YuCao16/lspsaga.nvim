@@ -104,10 +104,19 @@ function act:apply_action_keys()
     self:do_code_action()
   end, { buffer = self.action_bufnr })
 
-  map_keys('n', config.code_action.keys.quit, function()
-    self:close_action_window()
-    clean_ctx()
-  end, { buffer = self.action_bufnr })
+  if type(config.code_action.keys.quit) == "table" then
+    for _, key in pairs(config.code_action.keys.quit) do
+      map_keys('n', key, function()
+        self:close_action_window()
+        clean_ctx()
+      end, { buffer = self.action_bufnr })
+    end
+  else
+    map_keys('n', config.code_action.keys.quit, function()
+      self:close_action_window()
+      clean_ctx()
+    end, { buffer = self.action_bufnr })
+  end
 end
 
 function act:send_code_action_request(main_buf, options, cb)

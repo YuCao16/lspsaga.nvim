@@ -367,7 +367,7 @@ function finder:render_finder_result()
 
   local opt = {
     relative = 'win',
-    width = window.get_max_content_length(self.contents),
+    width = window.get_max_content_length(self.contents) + 1, -- for scroll bar
   }
 
   local max_height = math.floor(vim.o.lines * config.finder.max_height)
@@ -567,6 +567,7 @@ function finder:apply_map()
       if ok then
         pcall(api.nvim_buf_clear_namespace, buf, self.preview_hl_ns, 0, -1)
       end
+      vim.fn.win_gotoid(self.main_win)
       self:quit_float_window()
       self:clean_data()
       self:clean_ctx()
@@ -646,8 +647,19 @@ local function create_preview_window(finder_winid, main_win, main_buf)
   opts.row = winconfig.row[false]
   opts.height = winconfig.height
   local max_width = api.nvim_win_get_width(main_win) - opts.col - 4
+  -- TODO: move preview to the left of finder window
+  local min_width = vim.o.columns
+    - api.nvim_win_get_position(main_win)[2]
+    - api.nvim_win_get_cursor(0)[2]
+    - api.nvim_win_get_width(finder_winid)
+    - 6
+  min_width = min_width > 0 and min_width or 1
+  min_width = min_width > config.finder.preview_min_width 
+    and config.finder.preview_min_width or min_width
   local textwidth = vim.bo[main_buf].textwidth == 0 and 80 or vim.bo[main_buf].textwidth
-  opts.width = max_width > textwidth and textwidth or max_width
+  opts.width = (min_width > max_width and min_width)
+    or (max_width > textwidth and textwidth) 
+    or max_width
 
   local ltop = window.border_chars()['lefttop'][config.ui.border]
   local lbottom = window.border_chars()['leftbottom'][config.ui.border]
