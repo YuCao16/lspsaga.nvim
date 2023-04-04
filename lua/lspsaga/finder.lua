@@ -302,6 +302,7 @@ function finder:create_finder_contents(result, method)
       end
     end
 
+    short_name = short_name ~= nil and short_name or "No Definition Found"
     local target_line = '    ' .. icon_data[1] .. short_name
 
     local range = res.targetRange or res.range
