@@ -812,6 +812,7 @@ end
 
 function finder:open_link(action)
   local current_line = api.nvim_win_get_cursor(0)[1]
+  local current_file_path = api.nvim_buf_get_name(0)
 
   if not self.short_link[current_line] then
     vim.notify('[LspSaga] no file link in current line', vim.log.levels.WARN)
@@ -819,6 +820,11 @@ function finder:open_link(action)
   end
 
   local short_link = self.short_link
+
+  if short_link[current_line].row == nil then
+    vim.notify('[LspSaga] no definition found in current line', vim.log.levels.WARN)
+    return
+  end
 
   local pbuf = api.nvim_win_get_buf(self.preview_winid)
   clear_preview_ns(self.preview_hl_ns, pbuf)
@@ -829,7 +835,9 @@ function finder:open_link(action)
   if vim.bo.modified then
     vim.cmd('write')
   end
-  vim.cmd(action .. ' ' .. uv.fs_realpath(short_link[current_line].link))
+  if short_link[current_line].like ~= current_file_path then
+    vim.cmd(action .. ' ' .. uv.fs_realpath(short_link[current_line].link))
+  end
   api.nvim_win_set_cursor(0, { short_link[current_line].row + 1, short_link[current_line].col })
   local width = #api.nvim_get_current_line()
   libs.jump_beacon({ short_link[current_line].row, 0 }, width)
