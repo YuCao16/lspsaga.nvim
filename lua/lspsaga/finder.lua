@@ -58,6 +58,8 @@ function finder:lsp_finder()
   self.current_word = fn.expand('<cword>')
   self.main_buf = api.nvim_get_current_buf()
   self.main_win = api.nvim_get_current_win()
+  self.current_file_path = api.nvim_buf_get_name(0)
+  self.within_preview = false
   local from = { self.main_buf, pos[1], pos[2], 0 }
   local items = { { tagname = self.current_word, from = from } }
   fn.settagstack(api.nvim_get_current_win(), { items = items }, 't')
@@ -132,7 +134,7 @@ function finder:loading_bar()
   api.nvim_buf_set_option(spin_buf, 'modifiable', true)
 
   local spin_frame = 1
-  local spin_timer = uv.new_timer()
+  local spin_timer = assert(uv.new_timer())
   local start_request = uv.now()
   spin_timer:start(
     0,
@@ -283,6 +285,10 @@ function finder:create_finder_contents(result, method)
       if not vim.tbl_contains(self.wipe_buffers, bufnr) then
         table.insert(self.wipe_buffers, bufnr)
       end
+    elseif fn.bufwinnr(bufnr) == -1 then
+      if not vim.tbl_contains(self.wipe_buffers, bufnr) then
+        table.insert(self.wipe_buffers, bufnr)
+      end
     end
 
     if libs.iswin then
@@ -424,7 +430,9 @@ function finder:render_finder_result()
         pcall(api.nvim_buf_clear_namespace, buf, self.preview_hl_ns, 0, -1)
       end
       self:close_auto_preview_win()
-      api.nvim_del_augroup_by_id(self.group)
+      if self.group ~= nil then
+        api.nvim_del_augroup_by_id(self.group)
+      end
       self:clean_data()
       self:clean_ctx()
     end,
@@ -437,6 +445,22 @@ function finder:render_finder_result()
     callback = function()
       self:set_cursor()
       self:open_preview()
+    end,
+  })
+
+  api.nvim_create_autocmd('WinLeave', {
+    buffer = self.bufnr,
+    callback = function()
+      if not self.within_preview then
+        local ok, buf = pcall(api.nvim_win_get_buf, self.preview_winid)
+        if ok then
+          pcall(api.nvim_buf_clear_namespace, buf, self.preview_hl_ns, 0, -1)
+        end
+        vim.fn.win_gotoid(self.main_win)
+        self:quit_float_window()
+        self:clean_data()
+        self:clean_ctx()
+      end
     end,
   })
 
@@ -577,6 +601,7 @@ function finder:apply_map()
 
   vim.keymap.set('n', config.finder.keys.jump_to, function()
     if self.preview_winid and api.nvim_win_is_valid(self.preview_winid) then
+      self.within_preview = true
       api.nvim_set_current_win(self.preview_winid)
     end
   end, opts)
@@ -608,19 +633,19 @@ function finder:set_cursor()
   local last_imp_uri_lnum = self.imp_scope and self.imp_scope[2] or -2
 
   if current_line == 1 then
-    fn.cursor(first_def_uri_lnum, column)
+    fn.cursor({first_def_uri_lnum, column})
   elseif current_line == last_def_uri_lnum + 1 then
-    fn.cursor(first_imp_uri_lnum > 0 and first_imp_uri_lnum or first_ref_uri_lnum, column)
+    fn.cursor({first_imp_uri_lnum > 0 and first_imp_uri_lnum or first_ref_uri_lnum, column})
   elseif current_line == last_imp_uri_lnum + 1 then
-    fn.cursor(first_ref_uri_lnum, column)
+    fn.cursor({first_ref_uri_lnum, column})
   elseif current_line == last_ref_uri_lnum + 1 then
-    fn.cursor(first_def_uri_lnum, column)
+    fn.cursor({first_def_uri_lnum, column})
   elseif current_line == first_ref_uri_lnum - 1 then
-    fn.cursor(last_imp_uri_lnum > 0 and last_imp_uri_lnum or last_def_uri_lnum, column)
+    fn.cursor({last_imp_uri_lnum > 0 and last_imp_uri_lnum or last_def_uri_lnum, column})
   elseif current_line == first_imp_uri_lnum - 1 then
-    fn.cursor(last_def_uri_lnum, column)
+    fn.cursor({last_def_uri_lnum, column})
   elseif current_line == first_def_uri_lnum - 1 then
-    fn.cursor(last_ref_uri_lnum, column)
+    fn.cursor({last_ref_uri_lnum, column})
   end
 
   local actual_line = api.nvim_win_get_cursor(0)[1]
@@ -777,12 +802,30 @@ function finder:open_preview()
     -- if self.winid and api.nvim_win_is_valid(self.winid) then
     --   api.nvim_win_close(self.winid, true)
     -- end
+    self.within_preview = false
     if self.preview_winid and api.nvim_win_is_valid(self.preview_winid) then
       api.nvim_win_close(self.preview_winid, true)
     end
     -- self:clean_data()
     -- self:clean_ctx()
   end, { buffer = data.bufnr, nowait = true, silent = true })
+
+  api.nvim_create_autocmd('WinLeave', {
+    group = self.group,
+    buffer = data.bufnr,
+    callback = function()
+      if self.within_preview then
+        local ok, buf = pcall(api.nvim_win_get_buf, self.preview_winid)
+        if ok then
+          pcall(api.nvim_buf_clear_namespace, buf, self.preview_hl_ns, 0, -1)
+        end
+        vim.fn.win_gotoid(self.main_win)
+        self:quit_float_window()
+        self:clean_data()
+        self:clean_ctx()
+      end
+    end,
+  })
 
   api.nvim_create_autocmd('WinClosed', {
     group = self.group,
@@ -810,9 +853,67 @@ function finder:close_auto_preview_win()
   end
 end
 
+function finder:get_winnr_from_filepath(path)
+    local all_wins = vim.api.nvim_list_wins()
+    for _, win in ipairs(all_wins) do
+        local buf = vim.api.nvim_win_get_buf(win)
+        local buf_name = vim.api.nvim_buf_get_name(buf)
+        if buf_name == path then
+            return win
+        end
+    end
+    return nil
+end
+function finder:get_open_file_bufnr(path)
+    local open_buffers = vim.api.nvim_list_bufs()
+    for _, buf in ipairs(open_buffers) do
+        if vim.api.nvim_buf_is_valid(buf) and vim.api.nvim_buf_get_name(buf) == path then
+            return buf
+        end
+    end
+    return nil
+end
+
+local win_opts = {
+  winfixwidth = true,
+  winfixheight = true,
+  cursorbind = false,
+  scrollbind = false,
+}
+
+local float_win_opts = {
+  'number',
+  'relativenumber',
+  'cursorline',
+  'cursorcolumn',
+  'foldcolumn',
+  'spell',
+  'list',
+  'signcolumn',
+  'colorcolumn',
+  'fillchars',
+  'winhighlight',
+}
+
+function finder:restore_win_opts(parent_winnr, current_winnr)
+  for opt, _ in pairs(win_opts) do
+    if not vim.tbl_contains(float_win_opts, opt) then
+      local value = vim.api.nvim_win_get_option(parent_winnr, opt)
+      vim.api.nvim_win_set_option(current_winnr, opt, value)
+    end
+  end
+
+  for _, opt in ipairs(float_win_opts) do
+    local value = vim.api.nvim_win_get_option(parent_winnr, opt)
+    vim.api.nvim_win_set_option(current_winnr, opt, value)
+  end
+end
+
+
 function finder:open_link(action)
   local current_line = api.nvim_win_get_cursor(0)[1]
-  local current_file_path = api.nvim_buf_get_name(0)
+  local current_file_path = self.current_file_path
+  local current_file_win = self.main_win
 
   if not self.short_link[current_line] then
     vim.notify('[LspSaga] no file link in current line', vim.log.levels.WARN)
@@ -835,8 +936,15 @@ function finder:open_link(action)
   if vim.bo.modified then
     vim.cmd('write')
   end
-  if short_link[current_line].like ~= current_file_path then
+  if short_link[current_line].link ~= current_file_path then
+    local parent_winnr = self:get_winnr_from_filepath(short_link[current_line].link)
+    local parent_bufnr = self:get_open_file_bufnr(short_link[current_line].link)
     vim.cmd(action .. ' ' .. uv.fs_realpath(short_link[current_line].link))
+    if (parent_winnr ~= nil) and (parent_bufnr ~= nil) then
+      self:restore_win_opts(parent_winnr, current_file_win)
+    end
+  else
+    api.nvim_set_current_win(current_file_win)
   end
   api.nvim_win_set_cursor(0, { short_link[current_line].row + 1, short_link[current_line].col })
   local width = #api.nvim_get_current_line()

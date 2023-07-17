@@ -74,6 +74,12 @@ function act:action_callback()
       self:set_cursor()
     end,
   })
+  api.nvim_create_autocmd({'WinClosed', 'WinLeave'}, {
+    buffer = self.action_bufnr,
+    callback = function()
+      self:close_action_window()
+    end,
+  })
 
   for i = 1, #contents, 1 do
     local row = i - 1
@@ -330,7 +336,7 @@ function act:get_action_diff(num, main_buf)
   end
   local data = api.nvim_buf_get_lines(tmp_buf, 0, -1, false)
   api.nvim_buf_delete(tmp_buf, { force = true })
-  local diff = vim.diff(table.concat(lines, '\n'), table.concat(data, '\n'))
+  local diff = vim.diff(table.concat(lines, '\n'), table.concat(data, '\n'), {})
   return diff
 end
 
