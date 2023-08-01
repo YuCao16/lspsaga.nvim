@@ -1,5 +1,5 @@
 local api = vim.api
-local window = require('lspsaga.window')
+local window = require("lspsaga.window")
 local term = {}
 
 local ctx = {}
@@ -22,10 +22,8 @@ function term:open_float_terminal(command)
     return
   end
 
-  local cmd = command or os.getenv('SHELL')
-  if require('lspsaga.libs').iswin then
-    cmd = 'cmd.exe'
-  end
+  local cmd = command or os.getenv("SHELL")
+  if require("lspsaga.libs").iswin then cmd = "cmd.exe" end
   -- calculate our floating window size
   local win_height = math.ceil(vim.o.lines * 0.7)
   local win_width = math.ceil(vim.o.columns * 0.7)
@@ -36,8 +34,8 @@ function term:open_float_terminal(command)
 
   -- set some options
   local opts = {
-    style = 'minimal',
-    relative = 'editor',
+    style = "minimal",
+    relative = "editor",
     width = win_width,
     height = win_height,
     row = row,
@@ -47,17 +45,17 @@ function term:open_float_terminal(command)
   local content_opts = {
     contents = {},
     enter = true,
-    bufhidden = 'hide',
+    bufhidden = "hide",
     highlight = {
-      normal = 'TerminalNormal',
-      border = 'TerminalBorder',
+      normal = "TerminalNormal",
+      border = "TerminalBorder",
     },
   }
   local spawn_new = vim.tbl_isempty(ctx) and true or false
 
   if not spawn_new then
     content_opts.bufnr = ctx.term_bufnr
-    api.nvim_buf_set_option(ctx.term_bufnr, 'modified', false)
+    api.nvim_buf_set_option(ctx.term_bufnr, "modified", false)
   end
   ctx.cur_win = api.nvim_get_current_win()
   ctx.pos = api.nvim_win_get_cursor(0)
@@ -79,9 +77,9 @@ function term:open_float_terminal(command)
     })
   end
 
-  vim.cmd('startinsert!')
+  vim.cmd("startinsert!")
 
-  api.nvim_create_autocmd('WinClosed', {
+  api.nvim_create_autocmd("WinClosed", {
     buffer = ctx.term_bufnr,
     callback = function()
       if ctx.shadow_winid and api.nvim_win_is_valid(ctx.shadow_winid) then

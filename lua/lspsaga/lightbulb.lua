@@ -1,10 +1,8 @@
 local api, lsp, fn = vim.api, vim.lsp, vim.fn
-local config = require('lspsaga').config
+local config = require("lspsaga").config
 local lb = {}
 
-local function get_hl_group()
-  return 'LspSagaLightBulb'
-end
+local function get_hl_group() return "LspSagaLightBulb" end
 
 function lb:init_sign()
   self.name = get_hl_group()
@@ -15,7 +13,7 @@ function lb:init_sign()
 end
 
 local function check_server_support_codeaction(bufnr)
-  local libs = require('lspsaga.libs')
+  local libs = require("lspsaga.libs")
   local clients = lsp.get_active_clients({ bufnr = bufnr })
   for _, client in pairs(clients) do
     if not client.config.filetypes and next(config.server_filetype_map) ~= nil then
@@ -28,7 +26,7 @@ local function check_server_support_codeaction(bufnr)
     end
 
     if
-      client.supports_method('textDocument/codeAction')
+      client.supports_method("textDocument/codeAction")
       and libs.has_value(client.config.filetypes, vim.bo[bufnr].filetype)
     then
       return true
@@ -39,15 +37,15 @@ local function check_server_support_codeaction(bufnr)
 end
 
 local function _update_virtual_text(bufnr, line)
-  local namespace = api.nvim_create_namespace('sagalightbulb')
+  local namespace = api.nvim_create_namespace("sagalightbulb")
   api.nvim_buf_clear_namespace(bufnr, namespace, 0, -1)
 
   if line then
-    local icon_with_indent = '  ' .. config.ui.code_action
+    local icon_with_indent = "  " .. config.ui.code_action
     pcall(api.nvim_buf_set_extmark, bufnr, namespace, line, -1, {
-      virt_text = { { icon_with_indent, 'LspSagaLightBulb' } },
-      virt_text_pos = 'overlay',
-      hl_mode = 'combine',
+      virt_text = { { icon_with_indent, "LspSagaLightBulb" } },
+      virt_text_pos = "overlay",
+      hl_mode = "combine",
     })
   end
 end
@@ -63,9 +61,7 @@ local function generate_sign(bufnr, line)
 end
 
 local function _update_sign(bufnr, line)
-  if vim.w.lightbulb_line == 0 then
-    vim.w.lightbulb_line = 1
-  end
+  if vim.w.lightbulb_line == 0 then vim.w.lightbulb_line = 1 end
   if vim.w.lightbulb_line ~= 0 then
     fn.sign_unplace(lb.name, { id = vim.w.lightbulb_line, buffer = bufnr })
   end
@@ -77,26 +73,16 @@ local function _update_sign(bufnr, line)
 end
 
 local function render_action_virtual_text(bufnr, line, has_actions)
-  if not api.nvim_buf_is_valid(bufnr) then
-    return
-  end
+  if not api.nvim_buf_is_valid(bufnr) then return end
   if not has_actions then
-    if config.lightbulb.virtual_text then
-      _update_virtual_text(bufnr, nil)
-    end
-    if config.lightbulb.sign then
-      _update_sign(bufnr, nil)
-    end
+    if config.lightbulb.virtual_text then _update_virtual_text(bufnr, nil) end
+    if config.lightbulb.sign then _update_sign(bufnr, nil) end
     return
   end
 
-  if config.lightbulb.sign then
-    _update_sign(bufnr, line)
-  end
+  if config.lightbulb.sign then _update_sign(bufnr, line) end
 
-  if config.lightbulb.virtual_text then
-    _update_virtual_text(bufnr, line)
-  end
+  if config.lightbulb.virtual_text then _update_virtual_text(bufnr, line) end
 end
 
 local send_request = coroutine.create(function()
@@ -109,10 +95,10 @@ local send_request = coroutine.create(function()
     local params = lsp.util.make_range_params()
     params.context = context
     local line = params.range.start.line
-    lsp.buf_request_all(current_buf, 'textDocument/codeAction', params, function(results)
+    lsp.buf_request_all(current_buf, "textDocument/codeAction", params, function(results)
       local has_actions = false
       for _, res in pairs(results or {}) do
-        if res.result and type(res.result) == 'table' and next(res.result) ~= nil then
+        if res.result and type(res.result) == "table" and next(res.result) ~= nil then
           has_actions = true
           break
         end
@@ -135,29 +121,25 @@ end)
 
 local render_bulb = function(bufnr)
   local has_code_action = check_server_support_codeaction(bufnr)
-  if not has_code_action then
-    return
-  end
+  if not has_code_action then return end
   coroutine.resume(send_request, bufnr)
 end
 
 function lb.lb_autocmd()
   lb:init_sign()
-  api.nvim_create_autocmd('LspAttach', {
-    group = api.nvim_create_augroup('LspSagaLightBulb', { clear = true }),
+  api.nvim_create_autocmd("LspAttach", {
+    group = api.nvim_create_augroup("LspSagaLightBulb", { clear = true }),
     callback = function(opt)
       local buf = opt.buf
       local group = api.nvim_create_augroup(lb.name .. tostring(buf), {})
-      api.nvim_create_autocmd('CursorHold', {
+      api.nvim_create_autocmd("CursorHold", {
         group = group,
         buffer = buf,
-        callback = function()
-          render_bulb(buf)
-        end,
+        callback = function() render_bulb(buf) end,
       })
 
       if not config.lightbulb.enable_in_insert then
-        api.nvim_create_autocmd('InsertEnter', {
+        api.nvim_create_autocmd("InsertEnter", {
           group = group,
           buffer = buf,
           callback = function()
@@ -167,7 +149,7 @@ function lb.lb_autocmd()
         })
       end
 
-      api.nvim_create_autocmd('BufLeave', {
+      api.nvim_create_autocmd("BufLeave", {
         group = group,
         buffer = buf,
         callback = function()
@@ -176,12 +158,10 @@ function lb.lb_autocmd()
         end,
       })
 
-      api.nvim_create_autocmd('BufDelete', {
+      api.nvim_create_autocmd("BufDelete", {
         buffer = buf,
         once = true,
-        callback = function()
-          pcall(api.nvim_del_augroup_by_id, group)
-        end,
+        callback = function() pcall(api.nvim_del_augroup_by_id, group) end,
       })
     end,
   })

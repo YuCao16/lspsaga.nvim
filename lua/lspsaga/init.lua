@@ -1,19 +1,19 @@
 local api = vim.api
 local saga = {}
-saga.saga_augroup = api.nvim_create_augroup('Lspsaga', { clear = true })
+saga.saga_augroup = api.nvim_create_augroup("Lspsaga", { clear = true })
 
 local default_config = {
   ui = {
-    border = 'single',
+    border = "single",
     title = true,
     winblend = 0,
-    expand = '',
-    collapse = '',
-    code_action = '💡',
-    diagnostic = '🐞',
-    incoming = ' ',
-    outgoing = ' ',
-    hover = ' ',
+    expand = "",
+    collapse = "",
+    code_action = "💡",
+    diagnostic = "🐞",
+    incoming = " ",
+    outgoing = " ",
+    hover = " ",
     kind = {},
   },
   diagnostic = {
@@ -25,17 +25,17 @@ local default_config = {
     custom_msg = nil,
     text_hl_follow = false,
     keys = {
-      exec_action = 'o',
-      quit = 'q',
-      go_action = 'g',
+      exec_action = "o",
+      quit = "q",
+      go_action = "g",
     },
   },
   code_action = {
     num_shortcut = true,
     show_server_name = false,
     keys = {
-      quit = 'q',
-      exec = '<CR>',
+      quit = "q",
+      exec = "<CR>",
     },
   },
   lightbulb = {
@@ -51,8 +51,8 @@ local default_config = {
     lines_below = 10,
   },
   scroll_preview = {
-    scroll_down = '<C-f>',
-    scroll_up = '<C-b>',
+    scroll_down = "<C-f>",
+    scroll_up = "<C-b>",
   },
   request_timeout = 2000,
   finder = {
@@ -61,33 +61,33 @@ local default_config = {
     preview_min_width = 60,
     position = "below",
     keys = {
-      jump_to = 'p',
-      edit = { 'o', '<CR>' },
-      vsplit = 's',
-      split = 'i',
-      tabe = 't',
-      quit = { 'q', '<ESC>' },
-      close_in_preview = '<ESC>',
+      jump_to = "p",
+      edit = { "o", "<CR>" },
+      vsplit = "s",
+      split = "i",
+      tabe = "t",
+      quit = { "q", "<ESC>" },
+      close_in_preview = "<ESC>",
     },
   },
   definition = {
-    edit = '<C-c>o',
-    vsplit = '<C-c>v',
-    split = '<C-c>i',
-    tabe = '<C-c>t',
-    quit = 'q',
-    close = '<Esc>',
+    edit = "<C-c>o",
+    vsplit = "<C-c>v",
+    split = "<C-c>i",
+    tabe = "<C-c>t",
+    quit = "q",
+    close = "<Esc>",
   },
   rename = {
-    quit = '<C-c>',
-    exec = '<CR>',
-    mark = 'x',
-    confirm = '<CR>',
+    quit = "<C-c>",
+    exec = "<CR>",
+    mark = "x",
+    confirm = "<CR>",
     in_select = true,
   },
   symbol_in_winbar = {
     enable = true,
-    separator = ' ',
+    separator = " ",
     hide_keyword = true,
     show_file = true,
     folder_level = 2,
@@ -95,8 +95,8 @@ local default_config = {
     color_mode = true,
   },
   outline = {
-    win_position = 'right',
-    win_with = '',
+    win_position = "right",
+    win_with = "",
     win_width = 30,
     show_detail = true,
     auto_preview = true,
@@ -104,21 +104,21 @@ local default_config = {
     auto_close = true,
     custom_sort = nil,
     keys = {
-      jump = 'o',
-      expand_collapse = 'u',
-      quit = 'q',
+      jump = "o",
+      expand_collapse = "u",
+      quit = "q",
     },
   },
   callhierarchy = {
     show_detail = false,
     keys = {
-      edit = 'e',
-      vsplit = 's',
-      split = 'i',
-      tabe = 't',
-      jump = 'o',
-      quit = 'q',
-      expand_collapse = 'u',
+      edit = "e",
+      vsplit = "s",
+      split = "i",
+      tabe = "t",
+      jump = "o",
+      quit = "q",
+      expand_collapse = "u",
     },
   },
   beacon = {
@@ -130,17 +130,13 @@ local default_config = {
 
 function saga.setup(opts)
   opts = opts or {}
-  saga.config = vim.tbl_deep_extend('force', default_config, opts)
+  saga.config = vim.tbl_deep_extend("force", default_config, opts)
 
-  require('lspsaga.highlight'):init_highlight()
-  require('lspsaga.lspkind').init_kind_hl()
-  if saga.config.lightbulb.enable then
-    require('lspsaga.lightbulb').lb_autocmd()
-  end
+  require("lspsaga.highlight"):init_highlight()
+  require("lspsaga.lspkind").init_kind_hl()
+  if saga.config.lightbulb.enable then require("lspsaga.lightbulb").lb_autocmd() end
 
-  if saga.config.symbol_in_winbar.enable then
-    require('lspsaga.symbolwinbar'):symbol_autocmd()
-  end
+  if saga.config.symbol_in_winbar.enable then require("lspsaga.symbolwinbar"):symbol_autocmd() end
 end
 
 return saga

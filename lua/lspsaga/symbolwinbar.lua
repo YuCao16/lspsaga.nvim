@@ -1,105 +1,87 @@
 local lsp, api, fn = vim.lsp, vim.api, vim.fn
-local config = require('lspsaga').config.symbol_in_winbar
-local libs = require('lspsaga.libs')
+local config = require("lspsaga").config.symbol_in_winbar
+local libs = require("lspsaga.libs")
 local symbar = {}
 
 local cache = {}
 symbar.__index = symbar
 
-function symbar.__newindex(t, k, v)
-  rawset(t, k, v)
-end
+function symbar.__newindex(t, k, v) rawset(t, k, v) end
 
 local function bar_prefix()
   return {
-    prefix = '%#LspSagaWinbar',
-    sep = '%#LspSagaWinbarSep#' .. config.separator .. '%*',
+    prefix = "%#LspSagaWinbar",
+    sep = "%#LspSagaWinbarSep#" .. config.separator .. "%*",
   }
 end
 
 local function get_kind_icon(type, index)
-  local kind = require('lspsaga.lspkind').get_kind()
+  local kind = require("lspsaga.lspkind").get_kind()
   ---@diagnostic disable-next-line: need-check-nil
   return kind[type][index]
 end
 
 local function respect_lsp_root(buf)
   local clients = lsp.get_active_clients({ bufnr = buf })
-  if #clients == 0 then
-    return
-  end
+  if #clients == 0 then return end
   local root_dir = clients[1].config.root_dir
   local bufname = api.nvim_buf_get_name(buf)
   local bufname_parts = vim.split(bufname, libs.path_sep, { trimempty = true })
-  if not root_dir then
-    return { unpack(bufname_parts, config.folder_level - 1) }
-  end
+  if not root_dir then return { unpack(bufname_parts, config.folder_level - 1) } end
   local parts = vim.split(root_dir, libs.path_sep, { trimempty = true })
   return { unpack(bufname_parts, #parts + 1) }
 end
 
 local function bar_file_name(buf)
   local res
-  if config.respect_root then
-    res = respect_lsp_root(buf)
-  end
+  if config.respect_root then res = respect_lsp_root(buf) end
 
   --fallback to config.folder_level
-  if not res then
-    res = libs.get_path_info(buf, config.folder_level)
-  end
+  if not res then res = libs.get_path_info(buf, config.folder_level) end
 
-  if not res or #res == 0 then
-    return
-  end
+  if not res or #res == 0 then return end
   local data = libs.icon_from_devicon(vim.bo[buf].filetype, true)
   local bar = bar_prefix()
   local items = {}
   for i, v in pairs(res) do
     if i == #res then
       if #data > 0 then
-        table.insert(items, '%#LspSagaWinbarFileIcon#' .. data[1] .. ' ' .. '%*')
+        table.insert(items, "%#LspSagaWinbarFileIcon#" .. data[1] .. " " .. "%*")
 
-        local ok, conf = pcall(api.nvim_get_hl_by_name, 'LspSagaWinbarFileIcon', true)
-        if not ok then
-          conf = {}
-        end
+        local ok, conf = pcall(api.nvim_get_hl_by_name, "LspSagaWinbarFileIcon", true)
+        if not ok then conf = {} end
         api.nvim_set_hl(
           0,
-          'LspSagaWinbarFileIcon',
-          vim.tbl_extend('force', conf, {
+          "LspSagaWinbarFileIcon",
+          vim.tbl_extend("force", conf, {
             foreground = data[2],
           })
         )
       end
-      table.insert(items, bar.prefix .. 'File#' .. v .. '%*')
+      table.insert(items, bar.prefix .. "File#" .. v .. "%*")
     else
       table.insert(
         items,
         bar.prefix
-          .. 'Folder#'
+          .. "Folder#"
           .. get_kind_icon(302, 2)
-          .. '%*'
+          .. "%*"
           .. bar.prefix
-          .. 'FolderName'
-          .. '#'
+          .. "FolderName"
+          .. "#"
           .. v
-          .. '%*'
+          .. "%*"
           .. bar.sep
       )
     end
   end
-  return table.concat(items, '')
+  return table.concat(items, "")
 end
 
 local function get_node_range(node)
-  if node.location then
-    return node.location.range
-  end
+  if node.location then return node.location.range end
 
-  if node.range then
-    return node.range
-  end
+  if node.range then return node.range end
   return nil
 end
 
@@ -112,42 +94,32 @@ local function binary_search(tbl, line)
   while true do
     mid = bit.rshift(left + right, 1)
 
-    if mid == 0 then
-      return nil
-    end
+    if mid == 0 then return nil end
 
     local range = get_node_range(tbl[mid])
-    if not range then
-      return nil
-    end
+    if not range then return nil end
 
-    if line >= range.start.line and line <= range['end'].line then
+    if line >= range.start.line and line <= range["end"].line then
       return mid
     elseif line < range.start.line then
       right = mid - 1
-      if left > right then
-        return nil
-      end
+      if left > right then return nil end
     else
       left = mid + 1
-      if left > right then
-        return nil
-      end
+      if left > right then return nil end
     end
   end
 end
 
 function symbar.node_is_keyword(buf, node)
-  if not node.selectionRange then
-    return false
-  end
+  if not node.selectionRange then return false end
   local captures = vim.treesitter.get_captures_at_pos(
     buf,
     node.selectionRange.start.line,
     node.selectionRange.start.character
   )
   for _, v in pairs(captures) do
-    if v.capture == 'keyword' or v.capture == 'conditional' or v.capture == 'repeat' then
+    if v.capture == "keyword" or v.capture == "conditional" or v.capture == "repeat" then
       return true
     end
   end
@@ -155,23 +127,21 @@ function symbar.node_is_keyword(buf, node)
 end
 
 local function insert_elements(buf, node, elements)
-  if config.hide_keyword and symbar.node_is_keyword(buf, node) then
-    return
-  end
+  if config.hide_keyword and symbar.node_is_keyword(buf, node) then return end
   local type = get_kind_icon(node.kind, 1)
   local icon = get_kind_icon(node.kind, 2)
   local bar = bar_prefix()
   if config.color_mode then
-    local node_context = bar.prefix .. type .. '#' .. icon .. node.name
+    local node_context = bar.prefix .. type .. "#" .. icon .. node.name
     table.insert(elements, node_context)
   else
     local node_context = bar.prefix
       .. type
-      .. '#'
+      .. "#"
       .. icon
       .. bar.prefix
-      .. 'Word'
-      .. '#'
+      .. "Word"
+      .. "#"
       .. node.name
     table.insert(elements, node_context)
   end
@@ -180,9 +150,7 @@ end
 --@private
 local function find_in_node(buf, tbl, line, elements)
   local mid = binary_search(tbl, line)
-  if mid == nil then
-    return
-  end
+  if mid == nil then return end
 
   local node = tbl[mid]
 
@@ -194,7 +162,7 @@ local function find_in_node(buf, tbl, line, elements)
       if -- not sure there should be 6 or other kind can be used in here
         tbl[i].kind == 6
         and range.start.line > prev_range.start.line
-        and range['end'].line <= prev_range['end'].line
+        and range["end"].line <= prev_range["end"].line
       then
         insert_elements(buf, tbl[i], elements)
       end
@@ -211,18 +179,14 @@ end
 --@private
 local render_symbol_winbar = function(buf, symbols)
   local cur_buf = api.nvim_get_current_buf()
-  if cur_buf ~= buf then
-    return
-  end
+  if cur_buf ~= buf then return end
 
   local all_wins = fn.win_findbuf(buf)
   local cur_win = api.nvim_get_current_win()
-  if not vim.tbl_contains(all_wins, cur_win) then
-    return
-  end
+  if not vim.tbl_contains(all_wins, cur_win) then return end
 
   local current_line = api.nvim_win_get_cursor(cur_win)[1]
-  local winbar_str = config.show_file and bar_file_name(buf) or ''
+  local winbar_str = config.show_file and bar_file_name(buf) or ""
 
   local winbar_elements = {}
 
@@ -231,7 +195,7 @@ local render_symbol_winbar = function(buf, symbols)
   local lens, over_idx = 0, 0
   local max_width = math.floor(api.nvim_win_get_width(cur_win) * 0.9)
   for i, item in pairs(winbar_elements) do
-    local s = vim.split(item, '#')
+    local s = vim.split(item, "#")
     lens = lens + api.nvim_strwidth(s[3]) + api.nvim_strwidth(config.separator)
     if lens > max_width then
       over_idx = i
@@ -241,25 +205,21 @@ local render_symbol_winbar = function(buf, symbols)
 
   if over_idx > 0 then
     winbar_elements = { unpack(winbar_elements, over_idx) }
-    table.insert(winbar_elements, 1, '...')
+    table.insert(winbar_elements, 1, "...")
   end
 
   local bar = bar_prefix()
   local str = table.concat(winbar_elements, bar.sep)
 
-  if config.show_file and next(winbar_elements) ~= nil then
-    str = bar.sep .. str
-  end
+  if config.show_file and next(winbar_elements) ~= nil then str = bar.sep .. str end
 
   winbar_str = winbar_str .. str
 
   if config.enable and api.nvim_win_get_height(cur_win) - 1 > 1 then
-    if #winbar_str == 0 then
-      winbar_str = bar_prefix().prefix .. ' #'
-    end
+    if #winbar_str == 0 then winbar_str = bar_prefix().prefix .. " #" end
     --TODO: some string has invalidate character handle this string
     --ref: neovim/filetype/detect.lua scroll in 1588 line
-    api.nvim_set_option_value('winbar', winbar_str, { scope = 'local', win = cur_win })
+    api.nvim_set_option_value("winbar", winbar_str, { scope = "local", win = cur_win })
   end
   return winbar_str
 end
@@ -270,9 +230,7 @@ local function get_buf_symbol(buf)
   buf = buf or api.nvim_get_current_buf()
   local res = {}
 
-  if not cache[buf] then
-    return res
-  end
+  if not cache[buf] then return res end
 
   if cache[buf].pending_request then
     res.pending_request = cache[buf].pending_request
@@ -287,28 +245,20 @@ end
 function symbar:do_symbol_request(buf, callback)
   local params = { textDocument = lsp.util.make_text_document_params() }
 
-  local client = libs.get_client_by_cap('documentSymbolProvider')
-  if not client then
-    return
-  end
+  local client = libs.get_client_by_cap("documentSymbolProvider")
+  if not client then return end
   self[buf].pending_request = true
-  client.request('textDocument/documentSymbol', params, callback, buf)
+  client.request("textDocument/documentSymbol", params, callback, buf)
 end
 
 function symbar:refresh_symbol_cache(buf, render_fn)
   local function handler(_, result, ctx)
-    if api.nvim_get_current_buf() ~= buf or not self[ctx.bufnr] then
-      return
-    end
+    if api.nvim_get_current_buf() ~= buf or not self[ctx.bufnr] then return end
 
     self[ctx.bufnr].pending_request = false
-    if not result then
-      return
-    end
+    if not result then return end
 
-    if render_fn then
-      render_fn(buf, result)
-    end
+    if render_fn then render_fn(buf, result) end
 
     self[ctx.bufnr].symbols = result
   end
@@ -317,9 +267,7 @@ end
 
 function symbar:init_buf_symbols(buf, render_fn)
   local res = get_buf_symbol(buf)
-  if res.pending_request then
-    return
-  end
+  if res.pending_request then return end
 
   if not res.symbols or (next(res.symbols) == nil and not res.pending_request) then
     self:refresh_symbol_cache(buf, render_fn)
@@ -339,19 +287,17 @@ local function clean_buf_cache(buf)
 end
 
 function symbar:register_events(buf)
-  local augroup = api.nvim_create_augroup('LspsagaSymbol' .. tostring(buf), { clear = true })
+  local augroup = api.nvim_create_augroup("LspsagaSymbol" .. tostring(buf), { clear = true })
   self[buf].group = augroup
 
-  api.nvim_create_autocmd('CursorMoved', {
+  api.nvim_create_autocmd("CursorMoved", {
     group = augroup,
     buffer = buf,
-    callback = function()
-      self:init_buf_symbols(buf, render_symbol_winbar)
-    end,
-    desc = 'Lspsaga symbols render and request',
+    callback = function() self:init_buf_symbols(buf, render_symbol_winbar) end,
+    desc = "Lspsaga symbols render and request",
   })
 
-  api.nvim_create_autocmd({ 'TextChanged', 'InsertLeave' }, {
+  api.nvim_create_autocmd({ "TextChanged", "InsertLeave" }, {
     group = augroup,
     buffer = buf,
     callback = function()
@@ -361,59 +307,49 @@ function symbar:register_events(buf)
         self:refresh_symbol_cache(buf)
       end
     end,
-    desc = 'Lspsaga update symbols',
+    desc = "Lspsaga update symbols",
   })
 
   api.nvim_buf_attach(buf, false, {
     on_detach = function()
-      if self[buf] and self[buf].group then
-        pcall(api.nvim_del_augroup_by_id, self[buf].group)
-      end
+      if self[buf] and self[buf].group then pcall(api.nvim_del_augroup_by_id, self[buf].group) end
       clean_buf_cache(buf)
     end,
   })
 end
 
 function symbar:symbol_autocmd()
-  api.nvim_create_autocmd('LspAttach', {
-    group = api.nvim_create_augroup('LspsagaSymbols', { clear = false }),
+  api.nvim_create_autocmd("LspAttach", {
+    group = api.nvim_create_augroup("LspsagaSymbols", { clear = false }),
     callback = function(opt)
-      if vim.bo[opt.buf].buftype == 'nofile' then
-        return
-      end
+      if vim.bo[opt.buf].buftype == "nofile" then return end
 
       local winid = api.nvim_get_current_win()
-      if api.nvim_get_current_buf() ~= opt.buf then
-        return
-      end
+      if api.nvim_get_current_buf() ~= opt.buf then return end
 
-      local ok, _ = pcall(api.nvim_win_get_var, winid, 'disable_winbar')
-      if ok then
-        return
-      end
+      local ok, _ = pcall(api.nvim_win_get_var, winid, "disable_winbar")
+      if ok then return end
 
       if config.show_file then
         api.nvim_set_option_value(
-          'winbar',
+          "winbar",
           bar_file_name(opt.buf),
-          { scope = 'local', win = winid }
+          { scope = "local", win = winid }
         )
       else
         api.nvim_set_option_value(
-          'winbar',
-          bar_prefix().prefix .. ' #',
-          { scope = 'local', win = winid }
+          "winbar",
+          bar_prefix().prefix .. " #",
+          { scope = "local", win = winid }
         )
       end
 
-      if not self[opt.buf] then
-        self[opt.buf] = {}
-      end
+      if not self[opt.buf] then self[opt.buf] = {} end
 
       self:init_buf_symbols(opt.buf, render_symbol_winbar)
       self:register_events(opt.buf)
     end,
-    desc = 'Lspsaga get and show symbols',
+    desc = "Lspsaga get and show symbols",
   })
 end
 
@@ -421,9 +357,7 @@ end
 ---@return  string | nil
 function symbar:get_winbar()
   local buf = api.nvim_get_current_buf()
-  if not self[buf] then
-    self[buf] = {}
-  end
+  if not self[buf] then self[buf] = {} end
 
   local res = get_buf_symbol(buf)
   if vim.tbl_isempty(res) or not res.symbols then
@@ -431,15 +365,11 @@ function symbar:get_winbar()
     return
   end
 
-  if res.pending_request then
-    return
-  end
+  if res.pending_request then return end
 
   self:register_events(buf)
 
-  if res.symbols then
-    return render_symbol_winbar(buf, res.symbols)
-  end
+  if res.symbols then return render_symbol_winbar(buf, res.symbols) end
 end
 
 return setmetatable(cache, symbar)

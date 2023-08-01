@@ -1,53 +1,37 @@
 local api, fn, lsp, util = vim.api, vim.fn, vim.lsp, vim.lsp.util
-local config = require('lspsaga').config
+local config = require("lspsaga").config
 local hover = {}
 
 local function has_arg(args, arg)
-  local tbl = vim.split(args, '%s')
-  if vim.tbl_contains(tbl, arg) then
-    return true
-  end
+  local tbl = vim.split(args, "%s")
+  if vim.tbl_contains(tbl, arg) then return true end
   return false
 end
 
 function hover:open_floating_preview(res, option_fn)
   vim.validate({
-    res = { res, 't' },
+    res = { res, "t" },
   })
 
   local bufnr = api.nvim_get_current_buf()
   self.preview_bufnr = api.nvim_create_buf(false, true)
 
-  local content = vim.split(res.value, '\n', { trimempty = true })
+  local content = vim.split(res.value, "\n", { trimempty = true })
 
   local new = {}
   for _, line in pairs(content) do
-    if line:find('\r') then
-      line = line:gsub('\r\n?', ' ')
-    end
-    if line:find('&nbsp;') then
-      line = line:gsub('&nbsp;', ' ')
-    end
-    if line:find('&lt;') then
-      line = line:gsub('&lt;', '<')
-    end
-    if line:find('&gt;') then
-      line = line:gsub('&gt;', '>')
-    end
-    if line:find('<pre>') then
-      line = line:gsub('<pre>', '```')
-    end
-    if line:find('</pre>') then
-      line = line:gsub('</pre>', '```')
-    end
-    if #line > 0 then
-      table.insert(new, line)
-    end
+    if line:find("\r") then line = line:gsub("\r\n?", " ") end
+    if line:find("&nbsp;") then line = line:gsub("&nbsp;", " ") end
+    if line:find("&lt;") then line = line:gsub("&lt;", "<") end
+    if line:find("&gt;") then line = line:gsub("&gt;", ">") end
+    if line:find("<pre>") then line = line:gsub("<pre>", "```") end
+    if line:find("</pre>") then line = line:gsub("</pre>", "```") end
+    if #line > 0 then table.insert(new, line) end
   end
   content = new
 
-  local window = require('lspsaga.window')
-  local libs = require('lspsaga.libs')
+  local window = require("lspsaga.window")
+  local libs = require("lspsaga.libs")
   local max_float_width = math.floor(vim.o.columns * 0.6)
   local max_content_len = window.get_max_content_length(content)
   local increase = window.win_height_increase(content)
@@ -59,40 +43,40 @@ function hover:open_floating_preview(res, option_fn)
     no_size_override = true,
   }
 
-  if fn.has('nvim-0.9') == 1 and config.ui.title then
+  if fn.has("nvim-0.9") == 1 and config.ui.title then
     float_option.title = {
-      { config.ui.hover, 'Exception' },
-      { ' Hover', 'TitleString' },
+      { config.ui.hover, "Exception" },
+      { " Hover", "TitleString" },
     }
   end
 
   if option_fn then
     local new_opt = option_fn(float_option.width)
-    float_option = vim.tbl_extend('keep', float_option, new_opt)
+    float_option = vim.tbl_extend("keep", float_option, new_opt)
   end
 
   local contents_opt = {
     contents = content,
-    filetype = res.kind or 'markdown',
-    buftype = 'nofile',
+    filetype = res.kind or "markdown",
+    buftype = "nofile",
     wrap = true,
     highlight = {
-      normal = 'HoverNormal',
-      border = 'HoverBorder',
+      normal = "HoverNormal",
+      border = "HoverBorder",
     },
     bufnr = self.preview_bufnr,
   }
   _, self.preview_winid = window.create_win_with_border(contents_opt, float_option)
 
   vim.wo[self.preview_winid].conceallevel = 2
-  vim.wo[self.preview_winid].concealcursor = 'niv'
-  vim.wo[self.preview_winid].showbreak = 'NONE'
-  if fn.has('nvim-0.9') == 1 then
-    vim.wo[self.preview_winid].fcs = 'lastline: '
-    vim.treesitter.start(self.preview_bufnr, 'markdown')
+  vim.wo[self.preview_winid].concealcursor = "niv"
+  vim.wo[self.preview_winid].showbreak = "NONE"
+  if fn.has("nvim-0.9") == 1 then
+    vim.wo[self.preview_winid].fcs = "lastline: "
+    vim.treesitter.start(self.preview_bufnr, "markdown")
   end
 
-  vim.keymap.set('n', 'q', function()
+  vim.keymap.set("n", "q", function()
     if self.preview_winid and api.nvim_win_is_valid(self.preview_winid) then
       api.nvim_win_close(self.preview_winid, true)
       self:remove_data()
@@ -100,7 +84,7 @@ function hover:open_floating_preview(res, option_fn)
   end, { buffer = self.preview_bufnr })
 
   if not option_fn then
-    api.nvim_create_autocmd({ 'CursorMoved', 'InsertEnter' }, {
+    api.nvim_create_autocmd({ "CursorMoved", "InsertEnter" }, {
       buffer = bufnr,
       once = true,
       callback = function()
@@ -114,7 +98,7 @@ function hover:open_floating_preview(res, option_fn)
           self:remove_data()
         end
       end,
-      desc = '[Lspsaga] Auto close hover window',
+      desc = "[Lspsaga] Auto close hover window",
     })
   end
   libs.scroll_in_preview(bufnr, self.preview_winid)
@@ -122,15 +106,11 @@ end
 
 function hover:do_request(args)
   local params = util.make_position_params()
-  lsp.buf_request(0, 'textDocument/hover', params, function(_, result, ctx)
-    if api.nvim_get_current_buf() ~= ctx.bufnr then
-      return
-    end
+  lsp.buf_request(0, "textDocument/hover", params, function(_, result, ctx)
+    if api.nvim_get_current_buf() ~= ctx.bufnr then return end
 
     if not result or not result.contents then
-      if not args or not has_arg(args, '++quiet') then
-        vim.notify('No information available')
-      end
+      if not args or not has_arg(args, "++quiet") then vim.notify("No information available") end
       return
     end
 
@@ -138,34 +118,34 @@ function hover:do_request(args)
     -- type MarkedString = string | { language: string; value: string };
     -- interface MarkupContent { kind: MarkupKind; value: string; }
     local value
-    if type(result.contents) == 'string' then -- MarkedString
+    if type(result.contents) == "string" then -- MarkedString
       value = result.contents
     elseif result.contents.language then -- MarkedString
       value = result.contents.value
     elseif vim.tbl_islist(result.contents) then -- MarkedString[]
       if vim.tbl_isempty(result.contents) then
-        vim.notify('No information available')
+        vim.notify("No information available")
         return
       end
       local values = {}
       for _, ms in ipairs(result.contents) do
-        table.insert(values, type(ms) == 'string' and ms or ms.value)
+        table.insert(values, type(ms) == "string" and ms or ms.value)
       end
-      value = table.concat(values, '\n')
+      value = table.concat(values, "\n")
     elseif result.contents.kind then -- MarkupContent
       value = result.contents.value
     end
 
     result.contents = {
-      kind = 'markdown',
+      kind = "markdown",
       value = value,
     }
 
     local option_fn
-    if args and has_arg(args, '++keep') then
+    if args and has_arg(args, "++keep") then
       option_fn = function(width)
         local opt = {}
-        opt.relative = 'editor'
+        opt.relative = "editor"
         opt.row = 1
         opt.col = vim.o.columns - width - 3
         return opt
@@ -178,27 +158,25 @@ end
 
 function hover:remove_data()
   for k, v in pairs(self) do
-    if type(v) ~= 'function' then
-      self[k] = nil
-    end
+    if type(v) ~= "function" then self[k] = nil end
   end
 end
 
 function hover:render_hover_doc(args)
-  local has_parser = api.nvim_get_runtime_file('parser/markdown.so', true)
+  local has_parser = api.nvim_get_runtime_file("parser/markdown.so", true)
   if #has_parser == 0 then
     vim.notify(
-      '[Lpsaga.nvim] Please install markdown parser in nvim-treesitter',
+      "[Lpsaga.nvim] Please install markdown parser in nvim-treesitter",
       vim.log.levels.WARN
     )
     return
   end
 
   if self.preview_winid and api.nvim_win_is_valid(self.preview_winid) then
-    if (args and not has_arg(args, '++keep')) or not args then
+    if (args and not has_arg(args, "++keep")) or not args then
       api.nvim_set_current_win(self.preview_winid)
       return
-    elseif args and has_arg(args, '++keep') then
+    elseif args and has_arg(args, "++keep") then
       api.nvim_win_close(self.preview_winid, true)
       self.preview_winid = nil
       self.preview_bufnr = nil
@@ -206,8 +184,8 @@ function hover:render_hover_doc(args)
     end
   end
 
-  if vim.bo.filetype == 'help' then
-    api.nvim_feedkeys('K', 'ni', true)
+  if vim.bo.filetype == "help" then
+    api.nvim_feedkeys("K", "ni", true)
     return
   end
 

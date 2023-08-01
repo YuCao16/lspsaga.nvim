@@ -4,70 +4,70 @@ local M = {}
 function M.border_chars()
   return {
     lefttop = {
-      ['single'] = '┌',
-      ['double'] = '╔',
-      ['rounded'] = '╭',
-      ['solid'] = ' ',
+      ["single"] = "┌",
+      ["double"] = "╔",
+      ["rounded"] = "╭",
+      ["solid"] = " ",
     },
 
     top = {
-      ['single'] = '─',
-      ['double'] = '═',
-      ['rounded'] = '─',
-      ['solid'] = ' ',
+      ["single"] = "─",
+      ["double"] = "═",
+      ["rounded"] = "─",
+      ["solid"] = " ",
     },
     righttop = {
-      ['single'] = '┐',
-      ['double'] = '╗',
-      ['rounded'] = '╮',
-      ['solid'] = ' ',
+      ["single"] = "┐",
+      ["double"] = "╗",
+      ["rounded"] = "╮",
+      ["solid"] = " ",
     },
     right = {
-      ['single'] = '│',
-      ['double'] = '║',
-      ['rounded'] = '│',
-      ['solid'] = ' ',
+      ["single"] = "│",
+      ["double"] = "║",
+      ["rounded"] = "│",
+      ["solid"] = " ",
     },
     rightbottom = {
-      ['single'] = '┘',
-      ['double'] = '╝',
-      ['rounded'] = '╯',
-      ['solid'] = ' ',
+      ["single"] = "┘",
+      ["double"] = "╝",
+      ["rounded"] = "╯",
+      ["solid"] = " ",
     },
     bottom = {
-      ['single'] = '─',
-      ['double'] = '═',
-      ['rounded'] = '─',
-      ['solid'] = ' ',
+      ["single"] = "─",
+      ["double"] = "═",
+      ["rounded"] = "─",
+      ["solid"] = " ",
     },
     leftbottom = {
-      ['single'] = '└',
-      ['double'] = '╚',
-      ['rounded'] = '╰',
-      ['solid'] = ' ',
+      ["single"] = "└",
+      ["double"] = "╚",
+      ["rounded"] = "╰",
+      ["solid"] = " ",
     },
     left = {
-      ['single'] = '│',
-      ['double'] = '║',
-      ['rounded'] = '│',
-      ['solid'] = ' ',
+      ["single"] = "│",
+      ["double"] = "║",
+      ["rounded"] = "│",
+      ["solid"] = " ",
     },
   }
 end
 
 function M.combine_char()
   return {
-    ['righttop'] = {
-      ['single'] = '┬',
-      ['rounded'] = '┬',
-      ['double'] = '╦',
-      ['solid'] = ' ',
+    ["righttop"] = {
+      ["single"] = "┬",
+      ["rounded"] = "┬",
+      ["double"] = "╦",
+      ["solid"] = " ",
     },
-    ['rightbottom'] = {
-      ['single'] = '┴',
-      ['rounded'] = '┴',
-      ['double'] = '╩',
-      ['solid'] = ' ',
+    ["rightbottom"] = {
+      ["single"] = "┴",
+      ["rounded"] = "┴",
+      ["double"] = "╩",
+      ["solid"] = " ",
     },
   }
 end
@@ -75,7 +75,7 @@ end
 local function combine_border(style, side, hi)
   local border_chars = M.border_chars()
   local order =
-    { 'lefttop', 'top', 'righttop', 'right', 'rightbottom', 'bottom', 'leftbottom', 'left' }
+    { "lefttop", "top", "righttop", "right", "rightbottom", "bottom", "leftbottom", "left" }
 
   local res = {}
 
@@ -91,35 +91,33 @@ end
 
 local function make_floating_popup_options(width, height, opts)
   vim.validate({
-    opts = { opts, 't', true },
+    opts = { opts, "t", true },
   })
   opts = opts or {}
   vim.validate({
-    ['opts.offset_x'] = { opts.offset_x, 'n', true },
-    ['opts.offset_y'] = { opts.offset_y, 'n', true },
+    ["opts.offset_x"] = { opts.offset_x, "n", true },
+    ["opts.offset_y"] = { opts.offset_y, "n", true },
   })
   local new_option = {}
 
-  new_option.style = 'minimal'
+  new_option.style = "minimal"
   new_option.width = width
   new_option.height = height
 
-  if opts.focusable ~= nil then
-    new_option.focusable = opts.focusable
-  end
+  if opts.focusable ~= nil then new_option.focusable = opts.focusable end
 
   new_option.noautocmd = opts.noautocmd or true
 
-  new_option.relative = opts.relative and opts.relative or 'cursor'
+  new_option.relative = opts.relative and opts.relative or "cursor"
   new_option.anchor = opts.anchor or nil
-  if new_option.relative == 'win' then
+  if new_option.relative == "win" then
     new_option.bufpos = opts.bufpos or nil
     new_option.win = opts.win or nil
   end
 
   if opts.title then
     new_option.title = opts.title
-    new_option.title_pos = opts.title_pos or 'center'
+    new_option.title_pos = opts.title_pos or "center"
   end
 
   new_option.zindex = opts.zindex or nil
@@ -127,23 +125,23 @@ local function make_floating_popup_options(width, height, opts)
   if opts.row == nil and opts.col == nil then
     local lines_above = vim.fn.winline() - 1
     local lines_below = vim.fn.winheight(0) - lines_above
-    new_option.anchor = ''
+    new_option.anchor = ""
 
     local pum_pos = vim.fn.pum_getpos()
     local pum_vis = not vim.tbl_isempty(pum_pos) -- pumvisible() can be true and pum_pos() returns {}
-    if pum_vis and vim.fn.line('.') >= pum_pos.row or not pum_vis and lines_above < lines_below then
-      new_option.anchor = 'N'
+    if pum_vis and vim.fn.line(".") >= pum_pos.row or not pum_vis and lines_above < lines_below then
+      new_option.anchor = "N"
       new_option.row = opts.move_row and opts.move_row or 1
     else
-      new_option.anchor = 'S'
+      new_option.anchor = "S"
       new_option.row = opts.move_row and opts.move_row or 0
     end
 
     if vim.fn.wincol() + width <= vim.o.columns then
-      new_option.anchor = new_option.anchor .. 'W'
+      new_option.anchor = new_option.anchor .. "W"
       new_option.col = opts.move_col and opts.move_col or 0
     else
-      new_option.anchor = new_option.anchor .. 'E'
+      new_option.anchor = new_option.anchor .. "E"
       new_option.col = opts.move_col and opts.move_col or 1
     end
   else
@@ -169,8 +167,8 @@ end
 
 local function get_shadow_config()
   local opts = {
-    relative = 'editor',
-    style = 'minimal',
+    relative = "editor",
+    style = "minimal",
     width = vim.o.columns,
     height = vim.o.lines,
     row = 0,
@@ -181,12 +179,12 @@ end
 
 local function open_shadow_win()
   local opts = get_shadow_config()
-  local shadow_winhl = 'Normal:SagaShadow'
+  local shadow_winhl = "Normal:SagaShadow"
   local shadow_bufnr = api.nvim_create_buf(false, true)
   local shadow_winid = api.nvim_open_win(shadow_bufnr, true, opts)
-  api.nvim_set_option_value('winhl', shadow_winhl, { scope = 'local', win = shadow_winid })
-  api.nvim_set_option_value('winblend', 70, { scope = 'local', win = shadow_winid })
-  api.nvim_set_option_value('bufhidden', 'wipe', { buf = shadow_bufnr })
+  api.nvim_set_option_value("winhl", shadow_winhl, { scope = "local", win = shadow_winid })
+  api.nvim_set_option_value("winblend", 70, { scope = "local", win = shadow_winid })
+  api.nvim_set_option_value("bufhidden", "wipe", { buf = shadow_bufnr })
   return shadow_bufnr, shadow_winid
 end
 
@@ -196,11 +194,11 @@ end
 -- enter boolean into window or not
 -- highlight border highlight string type
 function M.create_win_with_border(content_opts, opts)
-  local config = require('lspsaga').config
+  local config = require("lspsaga").config
   vim.validate({
-    content_opts = { content_opts, 't' },
-    contents = { content_opts.content, 't', true },
-    opts = { opts, 't', true },
+    content_opts = { content_opts, "t" },
+    contents = { content_opts.content, "t", true },
+    opts = { opts, "t", true },
   })
 
   local contents, filetype = content_opts.contents, content_opts.filetype
@@ -210,11 +208,11 @@ function M.create_win_with_border(content_opts, opts)
 
   local highlight = content_opts.highlight or {}
 
-  local normal = highlight.normal or 'LspNormal'
-  local border_hl = highlight.border or 'LspBorder'
+  local normal = highlight.normal or "LspNormal"
+  local border_hl = highlight.border or "LspBorder"
 
   if content_opts.noborder then
-    opts.border = 'none'
+    opts.border = "none"
   else
     opts.border = content_opts.border_side
         and combine_border(config.ui.border, content_opts.border_side, border_hl)
@@ -227,43 +225,37 @@ function M.create_win_with_border(content_opts, opts)
   -- Clean up input: trim empty lines from the end, pad
   local content = lsp.util._trim(contents)
 
-  if filetype then
-    api.nvim_buf_set_option(bufnr, 'filetype', filetype)
-  end
+  if filetype then api.nvim_buf_set_option(bufnr, "filetype", filetype) end
 
   content = vim.tbl_flatten(vim.tbl_map(function(line)
-    if string.find(line, '\n') then
-      return vim.split(line, '\n')
-    end
+    if string.find(line, "\n") then return vim.split(line, "\n") end
     return line
   end, content))
 
-  if not vim.tbl_isempty(content) then
-    api.nvim_buf_set_lines(bufnr, 0, -1, true, content)
-  end
+  if not vim.tbl_isempty(content) then api.nvim_buf_set_lines(bufnr, 0, -1, true, content) end
 
   if not content_opts.bufnr then
-    api.nvim_set_option_value('modifiable', false, { buf = bufnr })
-    api.nvim_set_option_value('bufhidden', content_opts.bufhidden or 'wipe', { buf = bufnr })
-    api.nvim_set_option_value('buftype', content_opts.buftype or 'nofile', { buf = bufnr })
+    api.nvim_set_option_value("modifiable", false, { buf = bufnr })
+    api.nvim_set_option_value("bufhidden", content_opts.bufhidden or "wipe", { buf = bufnr })
+    api.nvim_set_option_value("buftype", content_opts.buftype or "nofile", { buf = bufnr })
   end
 
   -- vim.notify(vim.inspect(opts))
   local winid = api.nvim_open_win(bufnr, enter, opts)
   api.nvim_set_option_value(
-    'winblend',
+    "winblend",
     content_opts.winblend or config.ui.winblend,
-    { scope = 'local', win = winid }
+    { scope = "local", win = winid }
   )
-  api.nvim_set_option_value('wrap', content_opts.wrap or false, { scope = 'local', win = winid })
+  api.nvim_set_option_value("wrap", content_opts.wrap or false, { scope = "local", win = winid })
 
   api.nvim_set_option_value(
-    'winhl',
-    'Normal:' .. normal .. ',FloatBorder:' .. border_hl,
-    { scope = 'local', win = winid }
+    "winhl",
+    "Normal:" .. normal .. ",FloatBorder:" .. border_hl,
+    { scope = "local", win = winid }
   )
 
-  api.nvim_set_option_value('winbar', '', { scope = 'local', win = winid })
+  api.nvim_set_option_value("winbar", "", { scope = "local", win = winid })
   return bufnr, winid
 end
 
@@ -280,7 +272,7 @@ end
 
 function M.get_max_content_length(contents)
   vim.validate({
-    contents = { contents, 't' },
+    contents = { contents, "t" },
   })
   local cells = {}
   for _, v in pairs(contents) do
@@ -291,34 +283,24 @@ function M.get_max_content_length(contents)
 end
 
 function M.nvim_close_valid_window(winid)
-  if winid == nil then
-    return
-  end
+  if winid == nil then return end
 
   local close_win = function(win_id)
-    if not winid or win_id == 0 then
-      return
-    end
-    if vim.api.nvim_win_is_valid(win_id) then
-      api.nvim_win_close(win_id, true)
-    end
+    if not winid or win_id == 0 then return end
+    if vim.api.nvim_win_is_valid(win_id) then api.nvim_win_close(win_id, true) end
   end
 
   local _switch = {
-    ['table'] = function()
+    ["table"] = function()
       for _, id in ipairs(winid) do
         close_win(id)
       end
     end,
-    ['number'] = function()
-      close_win(winid)
-    end,
+    ["number"] = function() close_win(winid) end,
   }
 
   local _switch_metatable = {
-    __index = function(_, t)
-      error(string.format('Wrong type %s of winid', t))
-    end,
+    __index = function(_, t) error(string.format("Wrong type %s of winid", t)) end,
   }
 
   setmetatable(_switch, _switch_metatable)
@@ -327,10 +309,8 @@ function M.nvim_close_valid_window(winid)
 end
 
 function M.nvim_win_try_close()
-  local has_var, line_diag_winids = pcall(api.nvim_win_get_var, 0, 'show_line_diag_winids')
-  if has_var and line_diag_winids ~= nil then
-    M.nvim_close_valid_window(line_diag_winids)
-  end
+  local has_var, line_diag_winids = pcall(api.nvim_win_get_var, 0, "show_line_diag_winids")
+  if has_var and line_diag_winids ~= nil then M.nvim_close_valid_window(line_diag_winids) end
 end
 
 function M.win_height_increase(content, percent)
@@ -339,9 +319,7 @@ function M.win_height_increase(content, percent)
   local max_len = M.get_max_content_length(content)
   if max_len > max_width then
     vim.tbl_map(function(s)
-      if #s > max_width then
-        increase = increase + math.floor(#s / max_width)
-      end
+      if #s > max_width then increase = increase + math.floor(#s / max_width) end
     end, content)
   end
   return increase

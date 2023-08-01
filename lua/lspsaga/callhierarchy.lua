@@ -1,7 +1,7 @@
 local api, fn, lsp, uv = vim.api, vim.fn, vim.lsp, vim.loop
-local config = require('lspsaga').config
-local libs = require('lspsaga.libs')
-local window = require('lspsaga.window')
+local config = require("lspsaga").config
+local libs = require("lspsaga.libs")
+local window = require("lspsaga.window")
 local call_conf, ui = config.callhierarchy, config.ui
 local insert = table.insert
 
@@ -10,9 +10,7 @@ local ctx = {}
 local ch = {}
 ch.__index = ch
 
-function ch.__newindex(t, k, v)
-  rawset(t, k, v)
-end
+function ch.__newindex(t, k, v) rawset(t, k, v) end
 
 local function clean_ctx()
   for k, _ in pairs(ctx) do
@@ -22,36 +20,30 @@ end
 
 local function get_method(type)
   local method = {
-    'textDocument/prepareCallHierarchy',
-    'callHierarchy/incomingCalls',
-    'callHierarchy/outgoingCalls',
+    "textDocument/prepareCallHierarchy",
+    "callHierarchy/incomingCalls",
+    "callHierarchy/outgoingCalls",
   }
   return method[type]
 end
 
 ---@private
 local function pick_call_hierarchy_item(call_hierarchy_items)
-  if not call_hierarchy_items then
-    return
-  end
-  if #call_hierarchy_items == 1 then
-    return call_hierarchy_items[1]
-  end
+  if not call_hierarchy_items then return end
+  if #call_hierarchy_items == 1 then return call_hierarchy_items[1] end
   local items = {}
   for i, item in pairs(call_hierarchy_items) do
     local entry = item.detail or item.name
-    table.insert(items, string.format('%d. %s', i, entry))
+    table.insert(items, string.format("%d. %s", i, entry))
   end
   local choice = fn.inputlist(items)
-  if choice < 1 or choice > #items then
-    return
-  end
+  if choice < 1 or choice > #items then return end
   return choice
 end
 
 ---@private
 function ch:call_hierarchy(item, parent)
-  local spinner = { '⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷' }
+  local spinner = { "⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷" }
   local client = self.client
   local frame = 0
   local curline = api.nvim_win_get_cursor(0)[1]
@@ -78,7 +70,7 @@ function ch:call_hierarchy(item, parent)
           api.nvim_buf_add_highlight(
             self.bufnr,
             0,
-            'FinderSpinner',
+            "FinderSpinner",
             curline - 1,
             col_start,
             col_start + #spinner[next]
@@ -86,7 +78,7 @@ function ch:call_hierarchy(item, parent)
 
           if parent then
             for group, scope in pairs(parent.highlights) do
-              if not group:find('Saga') then
+              if not group:find("Saga") then
                 api.nvim_buf_add_highlight(self.bufnr, 0, group, curline - 1, scope[1], scope[2])
                 break
               end
@@ -111,24 +103,22 @@ function ch:call_hierarchy(item, parent)
   self.pending_request = true
   client.request(self.method, { item = item }, function(_, res)
     self.pending_request = false
-    if not res or vim.tbl_isempty(res) then
-      return
-    end
+    if not res or vim.tbl_isempty(res) then return end
 
-    local kind = require('lspsaga.lspkind').get_kind()
+    local kind = require("lspsaga.lspkind").get_kind()
     if not parent then
       local icons = {}
       for i, v in pairs(res) do
         local target = v.from and v.from or v.to
         table.insert(icons, kind[target.kind])
-        local expand_collapse = '  ' .. ui.expand
+        local expand_collapse = "  " .. ui.expand
         local icon = kind[target.kind][2]
         insert(self.data, {
           target = target,
           name = expand_collapse .. icon .. target.name,
           highlights = {
-            ['SagaCollapse'] = { 0, #expand_collapse },
-            ['LSOutline' .. kind[target.kind][1]] = { #expand_collapse, #expand_collapse + #icon },
+            ["SagaCollapse"] = { 0, #expand_collapse },
+            ["LSOutline" .. kind[target.kind][1]] = { #expand_collapse, #expand_collapse + #icon },
           },
           winline = i + 1,
           expand = false,
@@ -148,8 +138,8 @@ function ch:call_hierarchy(item, parent)
       parent.name,
     })
 
-    local _, level = parent.name:find('%s+')
-    local indent = string.rep(' ', level + 1)
+    local _, level = parent.name:find("%s+")
+    local indent = string.rep(" ", level + 1)
 
     local tbl = {}
     for i, v in pairs(res) do
@@ -160,8 +150,8 @@ function ch:call_hierarchy(item, parent)
         target = target,
         name = expand_collapse .. icon .. target.name,
         highlights = {
-          ['SagaCollapse'] = { 0, #expand_collapse },
-          ['LSOutline' .. kind[target.kind][1]] = { #expand_collapse, #expand_collapse + #icon },
+          ["SagaCollapse"] = { 0, #expand_collapse },
+          ["LSOutline" .. kind[target.kind][1]] = { #expand_collapse, #expand_collapse + #icon },
         },
         winline = parent.winline + i,
         expand = false,
@@ -188,7 +178,7 @@ end
 
 function ch:send_prepare_call()
   if self.pending_request then
-    vim.notify('there is already a request please wait.')
+    vim.notify("there is already a request please wait.")
     return
   end
   self.main_buf = api.nvim_get_current_buf()
@@ -203,19 +193,15 @@ end
 
 function ch:expand_collapse()
   local node = self:get_node_at_cursor()
-  if not node then
-    return
-  end
+  if not node then return end
 
   if not node.expand then
     if not node.requested then
-      if not self.pending_request then
-        self:call_hierarchy(node.target, node)
-      end
+      if not self.pending_request then self:call_hierarchy(node.target, node) end
     else
       node.name = node.name:gsub(ui.expand, ui.collapse)
-      node.highlights['SagaCollapse'] = { unpack(node.highlights['SagaExpand']) }
-      node.highlights['SagaExpand'] = nil
+      node.highlights["SagaCollapse"] = { unpack(node.highlights["SagaExpand"]) }
+      node.highlights["SagaExpand"] = nil
       vim.bo.modifiable = true
       api.nvim_buf_set_lines(self.bufnr, node.winline - 1, node.winline, false, {
         node.name,
@@ -248,8 +234,8 @@ function ch:expand_collapse()
   api.nvim_buf_set_lines(self.bufnr, cur_line - 1, cur_line + #node.children, false, { text })
   node.expand = false
   vim.bo[self.bufnr].modifiable = false
-  node.highlights['SagaExpand'] = { unpack(node.highlights['SagaCollapse']) }
-  node.highlights['SagaCollapse'] = nil
+  node.highlights["SagaExpand"] = { unpack(node.highlights["SagaCollapse"]) }
+  node.highlights["SagaCollapse"] = nil
 
   for group, scope in pairs(node.highlights) do
     api.nvim_buf_add_highlight(self.bufnr, 0, group, cur_line - 1, scope[1], scope[2])
@@ -265,7 +251,7 @@ function ch:apply_map()
   local keys = call_conf.keys
   local keymap = vim.keymap.set
   local opt = { buffer = true, nowait = true }
-  keymap('n', keys.quit, function()
+  keymap("n", keys.quit, function()
     if self.winid and api.nvim_win_is_valid(self.winid) then
       api.nvim_win_close(self.winid, true)
       if self.preview_winid and api.nvim_win_is_valid(self.preview_winid) then
@@ -275,16 +261,12 @@ function ch:apply_map()
     end
   end, opt)
 
-  keymap('n', keys.expand_collapse, function()
-    self:expand_collapse()
-  end, opt)
+  keymap("n", keys.expand_collapse, function() self:expand_collapse() end, opt)
 
-  keymap('n', keys.jump, function()
+  keymap("n", keys.jump, function()
     if self.preview_winid and api.nvim_win_is_valid(self.preview_winid) then
       local node = self:get_node_at_cursor()
-      if not node then
-        return
-      end
+      if not node then return end
       api.nvim_set_current_win(self.preview_winid)
       api.nvim_win_set_cursor(
         self.preview_winid,
@@ -299,18 +281,14 @@ function ch:apply_map()
     split = keys.split,
     tabe = keys.tabe,
   }) do
-    vim.keymap.set('n', key, function()
+    vim.keymap.set("n", key, function()
       local node = self:get_node_at_cursor()
-      if not node then
-        return
-      end
-      if api.nvim_win_is_valid(self.winid) then
-        api.nvim_win_close(self.winid, true)
-      end
+      if not node then return end
+      if api.nvim_win_is_valid(self.winid) then api.nvim_win_close(self.winid, true) end
       if self.preview_winid and api.nvim_win_is_valid(self.preview_winid) then
         api.nvim_win_close(self.preview_winid, true)
       end
-      vim.cmd(action .. ' ' .. vim.uri_to_fname(node.target.uri))
+      vim.cmd(action .. " " .. vim.uri_to_fname(node.target.uri))
       api.nvim_win_set_cursor(
         0,
         { node.target.selectionRange.start.line + 1, node.target.selectionRange.start.character }
@@ -330,36 +308,36 @@ function ch:render_win()
     insert(content, v.name)
   end
 
-  local side_char = window.border_chars()['top'][config.ui.border]
-  local r = window.border_chars()['right'][config.ui.border]
-  local rtop = window.border_chars()['righttop'][config.ui.border]
-  local rbottom = window.border_chars()['rightbottom'][config.ui.border]
+  local side_char = window.border_chars()["top"][config.ui.border]
+  local r = window.border_chars()["right"][config.ui.border]
+  local rtop = window.border_chars()["righttop"][config.ui.border]
+  local rbottom = window.border_chars()["rightbottom"][config.ui.border]
   local content_opt = {
     contents = content,
-    filetype = 'lspsagacallhierarchy',
-    buftype = 'nofile',
+    filetype = "lspsagacallhierarchy",
+    buftype = "nofile",
     enter = true,
     border_side = {
-      ['right'] = r,
-      ['righttop'] = rtop,
-      ['rightbottom'] = rbottom,
+      ["right"] = r,
+      ["righttop"] = rtop,
+      ["rightbottom"] = rbottom,
     },
     highlight = {
-      normal = 'CallHierarchyNormal',
-      border = 'CallHierarchyBorder',
+      normal = "CallHierarchyNormal",
+      border = "CallHierarchyBorder",
     },
   }
 
   local cur_winline = fn.winline()
   local max_height = math.floor(vim.o.lines * 0.4)
   if vim.o.lines - cur_winline - 6 < max_height then
-    vim.cmd('normal! zz')
-    local keycode = api.nvim_replace_termcodes('5<C-e>', true, false, true)
-    api.nvim_feedkeys(keycode, 'x', false)
+    vim.cmd("normal! zz")
+    local keycode = api.nvim_replace_termcodes("5<C-e>", true, false, true)
+    api.nvim_feedkeys(keycode, "x", false)
   end
 
   local opt = {
-    relative = 'win',
+    relative = "win",
     win = api.nvim_get_current_win(),
     row = fn.winline() + 1,
     col = 10,
@@ -368,25 +346,23 @@ function ch:render_win()
     no_size_override = true,
   }
 
-  if fn.has('nvim-0.9') == 1 and config.ui.title then
-    local icon = self.method == 'callHierarchy/incomingCalls' and ui.incoming or ui.outgoing
+  if fn.has("nvim-0.9") == 1 and config.ui.title then
+    local icon = self.method == "callHierarchy/incomingCalls" and ui.incoming or ui.outgoing
     opt.title = {
-      { icon, 'ArrowIcon' },
+      { icon, "ArrowIcon" },
     }
-    opt.title_pos = 'center'
-    api.nvim_set_hl(0, 'ArrowIcon', { link = 'CallHierarchyBorder' })
+    opt.title_pos = "center"
+    api.nvim_set_hl(0, "ArrowIcon", { link = "CallHierarchyBorder" })
   end
 
   self.bufnr, self.winid = window.create_win_with_border(content_opt, opt)
   api.nvim_win_set_cursor(self.winid, { 2, 9 })
-  api.nvim_create_autocmd('CursorMoved', {
+  api.nvim_create_autocmd("CursorMoved", {
     buffer = self.bufnr,
-    callback = function()
-      self:preview()
-    end,
+    callback = function() self:preview() end,
   })
 
-  api.nvim_buf_add_highlight(self.bufnr, 0, 'LSOutlinePackage', 0, 0, -1)
+  api.nvim_buf_add_highlight(self.bufnr, 0, "LSOutlinePackage", 0, 0, -1)
 
   for i, items in pairs(self.data) do
     for group, scope in pairs(items.highlights) do
@@ -400,9 +376,7 @@ end
 ---@private
 local function node_in_parent(parent, node)
   for _, v in pairs(parent.children) do
-    if v.name == node.name then
-      return true
-    end
+    if v.name == node.name then return true end
   end
   return false
 end
@@ -411,15 +385,9 @@ function ch:change_node_winline(node, factor)
   local found = false
   local function get_node(data)
     for _, v in pairs(data) do
-      if found and not node_in_parent(node, v) then
-        v.winline = v.winline + factor
-      end
-      if v.name == node.name then
-        found = true
-      end
-      if v.children then
-        get_node(v.children)
-      end
+      if found and not node_in_parent(node, v) then v.winline = v.winline + factor end
+      if v.name == node.name then found = true end
+      if v.children then get_node(v.children) end
     end
   end
 
@@ -428,19 +396,13 @@ end
 
 function ch:get_node_at_cursor()
   local cur_line = api.nvim_win_get_cursor(0)[1]
-  if cur_line == 1 then
-    return
-  end
+  if cur_line == 1 then return end
   local node
 
   local function get_node(data)
     for _, v in pairs(data) do
-      if v.winline == cur_line then
-        node = v
-      end
-      if v.children then
-        get_node(v.children)
-      end
+      if v.winline == cur_line then node = v end
+      if v.children then get_node(v.children) end
     end
   end
 
@@ -449,17 +411,13 @@ function ch:get_node_at_cursor()
 end
 
 local function get_preview_data(node)
-  if not node or vim.tbl_count(node) == 0 then
-    return
-  end
+  if not node or vim.tbl_count(node) == 0 then return end
 
   local uri = node.target.uri
   local range = node.target.range
   local bufnr = vim.uri_to_bufnr(uri)
 
-  if not api.nvim_buf_is_loaded(bufnr) then
-    fn.bufload(bufnr)
-  end
+  if not api.nvim_buf_is_loaded(bufnr) then fn.bufload(bufnr) end
 
   return { bufnr = bufnr, range = range }
 end
@@ -475,15 +433,16 @@ local function create_preview_window(winid)
     col = winconfig.col[false] + winconfig.width + 2,
     no_size_override = true,
   }
-  opt.width = (vim.o.columns - opt.col - 6) < max_width and (vim.o.columns - opt.col - 6) or max_width
+  opt.width = (vim.o.columns - opt.col - 6) < max_width and (vim.o.columns - opt.col - 6)
+    or max_width
 
-  local rtop = window.combine_char()['righttop'][config.ui.border]
-  local rbottom = window.combine_char()['rightbottom'][config.ui.border]
+  local rtop = window.combine_char()["righttop"][config.ui.border]
+  local rbottom = window.combine_char()["rightbottom"][config.ui.border]
   local content_opt = {
     contents = {},
     border_side = {
-      ['lefttop'] = rtop,
-      ['leftbottom'] = rbottom,
+      ["lefttop"] = rtop,
+      ["leftbottom"] = rbottom,
     },
     enter = false,
   }
@@ -493,37 +452,33 @@ end
 
 function ch:preview()
   local node = self:get_node_at_cursor()
-  if not node then
-    return
-  end
+  if not node then return end
 
   local data = get_preview_data(node)
-  if not data or not data.bufnr then
-    return
-  end
+  if not data or not data.bufnr then return end
 
   if not self.preview_winid or not api.nvim_win_is_valid(self.preview_winid) then
     self.preview_bufnr, self.preview_winid = create_preview_window(self.winid)
   end
 
   api.nvim_win_set_buf(self.preview_winid, data.bufnr)
-  if config.ui.title and fn.has('nvim-0.9') == 1 then
+  if config.ui.title and fn.has("nvim-0.9") == 1 then
     local path = vim.split(api.nvim_buf_get_name(data.bufnr), libs.path_sep, { trimempty = true })
     local icon = libs.icon_from_devicon(vim.bo[self.main_buf].filetype)
     api.nvim_win_set_config(self.preview_winid, {
       border = config.ui.border,
       title = {
-        { icon[1] and icon[1] .. ' ' or '', icon[2] or 'TitleString' },
-        { path[#path], 'TitleString' },
+        { icon[1] and icon[1] .. " " or "", icon[2] or "TitleString" },
+        { path[#path], "TitleString" },
       },
-      title_pos = 'center',
+      title_pos = "center",
     })
   end
 
   api.nvim_set_option_value(
-    'winhl',
-    'Normal:finderNormal,FloatBorder:finderPreviewBorder',
-    { scope = 'local', win = self.preview_winid }
+    "winhl",
+    "Normal:finderNormal,FloatBorder:finderPreviewBorder",
+    { scope = "local", win = self.preview_winid }
   )
 
   api.nvim_win_set_cursor(
@@ -531,11 +486,11 @@ function ch:preview()
     { data.range.start.line + 1, data.range.start.character }
   )
   vim.bo[data.bufnr].filetype = vim.bo[self.main_buf].filetype
-  api.nvim_set_option_value('winbar', '', { scope = 'local', win = self.preview_winid })
+  api.nvim_set_option_value("winbar", "", { scope = "local", win = self.preview_winid })
 end
 
 function ch:send_method(type)
-  self.cword = fn.expand('<cword>')
+  self.cword = fn.expand("<cword>")
   self.method = get_method(type)
   self.data = {}
   self:send_prepare_call()
