@@ -167,7 +167,7 @@ function finder:loading_bar()
 end
 
 function finder:do_request(params, method)
-  if method == methods(3) then params.context = { includeDeclaration = true } end
+  if method == methods(3) then params.context = { includeDeclaration = false } end
   lsp.buf_request_all(self.current_buf, method, params, function(results)
     local result = {}
     for _, res in pairs(results or {}) do
