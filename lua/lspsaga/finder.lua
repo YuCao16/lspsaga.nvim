@@ -166,21 +166,46 @@ function finder:loading_bar()
   )
 end
 
+-- function finder:do_request(params, method)
+--   if method == methods(3) then params.context = { includeDeclaration = false } end
+--   lsp.buf_request_all(self.current_buf, method, params, function(results)
+--     local result = {}
+--     for _, res in pairs(results or {}) do
+--       if res.result and not (res.result.uri or res.result.targetUri) then
+--         libs.merge_table(result, res.result)
+--       elseif res.result and (res.result.uri or res.result.targetUri) then
+--         table.insert(result, res.result)
+--       end
+--     end
+
+--     self.request_result[method] = result
+--     self.request_status[method] = true
+--   end)
+-- end
+
 function finder:do_request(params, method)
   if method == methods(3) then params.context = { includeDeclaration = false } end
-  lsp.buf_request_all(self.current_buf, method, params, function(results)
-    local result = {}
-    for _, res in pairs(results or {}) do
-      if res.result and not (res.result.uri or res.result.targetUri) then
-        libs.merge_table(result, res.result)
-      elseif res.result and (res.result.uri or res.result.targetUri) then
-        table.insert(result, res.result)
+  local _client_request_ids, cancel_all_requests, client_request_ids
+  _client_request_ids, cancel_all_requests = lsp.buf_request(
+    self.current_buf,
+    method,
+    params,
+    function(err, result, _ctx)
+      if not client_request_ids then
+        client_request_ids = vim.tbl_deep_extend("keep", _client_request_ids, {})
       end
-    end
+      if result == nil or vim.tbl_isempty(result) then
+        client_request_ids[_ctx.client_id] = nil
+      else
+        cancel_all_requests()
+        result = vim.tbl_islist(result) and result or { result }
+      end
+      if vim.tbl_isempty(client_request_ids) then result({}) end
 
-    self.request_result[method] = result
-    self.request_status[method] = true
-  end)
+      self.request_result[method] = result
+      self.request_status[method] = true
+    end
+  )
 end
 
 function finder:get_uri_scope(method, start_lnum, end_lnum)
