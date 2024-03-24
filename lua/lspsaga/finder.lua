@@ -200,7 +200,7 @@ function finder:do_request(params, method)
         cancel_all_requests()
         result = vim.tbl_islist(result) and result or { result }
       end
-      if vim.tbl_isempty(client_request_ids) then result({}) end
+      if vim.tbl_isempty(client_request_ids) then result = {} end
 
       self.request_result[method] = result
       self.request_status[method] = true
