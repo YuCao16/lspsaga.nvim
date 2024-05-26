@@ -645,8 +645,8 @@ local function create_preview_window(finder_winid, main_win, main_buf)
   }
 
   local winconfig = api.nvim_win_get_config(finder_winid)
-  opts.col = winconfig.col[false] + winconfig.width + 3
-  opts.row = winconfig.row[false]
+  opts.col = winconfig.col + winconfig.width + 3
+  opts.row = winconfig.row
   opts.height = winconfig.height
   local max_width = api.nvim_win_get_width(main_win) - opts.col - 4
   -- TODO: move preview to the left of finder window

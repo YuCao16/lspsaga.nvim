@@ -223,14 +223,17 @@ function M.create_win_with_border(content_opts, opts)
   local bufnr = content_opts.bufnr or api.nvim_create_buf(false, false)
   -- buffer settings for contents buffer
   -- Clean up input: trim empty lines from the end, pad
-  local content = lsp.util._trim(contents)
+  local content = lsp.util.trim_empty_lines(contents)
 
   if filetype then api.nvim_buf_set_option(bufnr, "filetype", filetype) end
 
-  content = vim.tbl_flatten(vim.tbl_map(function(line)
-    if string.find(line, "\n") then return vim.split(line, "\n") end
-    return line
-  end, content))
+  content = vim
+    .iter(vim.tbl_map(function(line)
+      if string.find(line, "\n") then return vim.split(line, "\n") end
+      return line
+    end, content))
+    :flatten()
+    :totable()
 
   if not vim.tbl_isempty(content) then api.nvim_buf_set_lines(bufnr, 0, -1, true, content) end
 
